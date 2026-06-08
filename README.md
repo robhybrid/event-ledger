@@ -44,18 +44,8 @@ When the Account Service is unavailable, `POST /events` returns HTTP 503 but sto
 ## Prerequisites
 
 - **Python 3.11+**
-- **[uv](https://docs.astral.sh/uv/)** — fast Python package and virtual environment manager
-- **Docker & Docker Compose** (optional, for containerized deployment)
-
-### Install uv
-
-```bash
-# macOS / Linux
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# macOS (Homebrew)
-brew install uv
-```
+- **[uv](https://docs.astral.sh/uv/getting-started/installation/)** — fast Python package and virtual environment manager ([installation guide](https://docs.astral.sh/uv/getting-started/installation/))
+- **[Docker](https://docs.docker.com/get-started/get-docker/)** & **Docker Compose** — required to run the full stack with observability ([Docker Desktop](https://www.docker.com/products/docker-desktop/) is the easiest way to install on macOS and Windows)
 
 ## Local development
 
@@ -95,6 +85,7 @@ docker compose up --build
 | Endpoint | URL |
 |---|---|
 | Gateway API | http://localhost:8000 |
+| API Documentation | http://localhost:8000/docs |
 | Account Service | http://localhost:8001 |
 | Jaeger UI | http://localhost:16686 |
 | Gateway metrics | http://localhost:8000/metrics |
@@ -129,6 +120,20 @@ Test coverage includes:
 - Trace ID propagation
 - Full Gateway → Account Service integration flow
 - JSON Schema contract tests between services
+
+## Bonus features
+
+Stretch goals from the project requirements that are implemented:
+
+| Feature | Status |
+|---|---|
+| OpenTelemetry Collector + Jaeger trace visualization | Implemented (`docker-compose.yml`, Jaeger UI at `:16686`) |
+| Prometheus metrics endpoint | Implemented (`GET /metrics` on both services) |
+| Retry with exponential backoff + jitter | Implemented (`tenacity` in Gateway Account Service client) |
+| Rate limiting on the Gateway | Implemented (`slowapi`, default `100/minute`) |
+| Contract tests (JSON Schema) | Implemented (`tests/contract/`) |
+| Async fallback: local queue when Account Service is down | Implemented (`queue_worker`, `GATEWAY_QUEUE_PROCESSING_ENABLED`) |
+| AWS deployment (ECS Fargate) | Implemented (`infrastructure/aws/`) |
 
 ## AWS deployment (stretch goal)
 
