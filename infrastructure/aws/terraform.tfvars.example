@@ -1,0 +1,4 @@
+aws_region    = "us-east-1"
+project_name  = "event-ledger"
+gateway_image = "123456789012.dkr.ecr.us-east-1.amazonaws.com/event-ledger-gateway:latest"
+account_image = "123456789012.dkr.ecr.us-east-1.amazonaws.com/event-ledger-account:latest"
