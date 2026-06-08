@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "EventPayload",
+  "type": "object",
+  "required": ["eventId", "accountId", "type", "amount", "currency", "eventTimestamp"],
+  "additionalProperties": false,
+  "properties": {
+    "eventId": { "type": "string", "minLength": 1 },
+    "accountId": { "type": "string", "minLength": 1 },
+    "type": { "type": "string", "enum": ["CREDIT", "DEBIT"] },
+    "amount": { "type": "string", "pattern": "^\\d+\\.\\d{4}$" },
+    "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+    "eventTimestamp": { "type": "string", "format": "date-time" },
+    "metadata": { "type": "object" }
+  }
+}
