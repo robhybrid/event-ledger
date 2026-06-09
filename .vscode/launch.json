@@ -1,0 +1,19 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Docker Compose: Up",
+      "request": "launch",
+      "type": "node-terminal",
+      "command": "docker compose up --build",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Docker Compose: Down",
+      "request": "launch",
+      "type": "node-terminal",
+      "command": "docker compose down",
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}
