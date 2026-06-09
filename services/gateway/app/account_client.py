@@ -145,7 +145,7 @@ class AccountServiceClient:
             async with httpx.AsyncClient(timeout=2.0) as client:
                 response = await client.get(
                     f"{self._base_url}/health",
-                    headers={TRACE_ID_HEADER: get_trace_id() or ""},
+                    headers=self._headers(),
                 )
             return response.status_code == 200
         except Exception:

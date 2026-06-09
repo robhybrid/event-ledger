@@ -12,12 +12,10 @@ exporters:
     endpoint: jaeger:4317
     tls:
       insecure: true
-  logging:
-    loglevel: info
 
 service:
   pipelines:
     traces:
       receivers: [otlp]
       processors: [batch]
-      exporters: [otlp/jaeger, logging]
+      exporters: [otlp/jaeger]
