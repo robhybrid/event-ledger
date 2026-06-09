@@ -37,7 +37,7 @@ htmlcov/
 .terraform/
 *.tfstate
 *.tfstate.*
-.terraform.lock.hcl
+terraform.tfvars
 
 # Docker
 docker-data/

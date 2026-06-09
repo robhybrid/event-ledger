@@ -116,7 +116,7 @@ resource "aws_route_table_association" "private" {
 
 resource "aws_security_group" "alb" {
   name        = "${var.project_name}-alb-sg"
-  description = "Public ALB — internet-facing, forwards only to Gateway"
+  description = "Public ALB - internet-facing, forwards only to Gateway"
   vpc_id      = aws_vpc.main.id
 
   ingress {
@@ -136,7 +136,7 @@ resource "aws_security_group" "alb" {
 
 resource "aws_security_group" "gateway" {
   name        = "${var.project_name}-gateway-sg"
-  description = "Gateway ECS tasks — accepts traffic from ALB only"
+  description = "Gateway ECS tasks - accepts traffic from ALB only"
   vpc_id      = aws_vpc.main.id
 
   ingress {
@@ -156,7 +156,7 @@ resource "aws_security_group" "gateway" {
 
 resource "aws_security_group" "account" {
   name        = "${var.project_name}-account-sg"
-  description = "Account ECS tasks — accepts traffic from Gateway only (private)"
+  description = "Account ECS tasks - accepts traffic from Gateway only (private)"
   vpc_id      = aws_vpc.main.id
 
   ingress {

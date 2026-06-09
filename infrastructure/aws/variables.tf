@@ -19,3 +19,9 @@ variable "account_image" {
   description = "ECR image URI for the account service"
   type        = string
 }
+
+variable "github_repository" {
+  description = "GitHub repository in owner/repo format for OIDC trust"
+  type        = string
+  default     = "robhybrid/event-ledger"
+}
