@@ -126,6 +126,13 @@ resource "aws_security_group" "alb" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  ingress {
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -279,6 +286,7 @@ resource "aws_ecs_task_definition" "account" {
     portMappings = [{ containerPort = 8001, protocol = "tcp" }]
     environment = [
       { name = "ACCOUNT_DATABASE_URL", value = "sqlite+aiosqlite:////tmp/account.db" },
+      { name = "ACCOUNT_OTLP_ENDPOINT", value = "otel-collector.${var.project_name}.local:4317" },
     ]
     logConfiguration = {
       logDriver = "awslogs"
@@ -316,6 +324,7 @@ resource "aws_ecs_task_definition" "gateway" {
         name  = "GATEWAY_ACCOUNT_SERVICE_URL"
         value = "http://account-service.${var.project_name}.local:8001"
       },
+      { name = "GATEWAY_OTLP_ENDPOINT", value = "otel-collector.${var.project_name}.local:4317" },
     ]
     logConfiguration = {
       logDriver = "awslogs"

@@ -11,6 +11,7 @@ Deployed on AWS ECS Fargate (Account Service is VPC-private; only the Gateway is
 | **Gateway API** | http://event-ledger-alb-1832743372.us-east-1.elb.amazonaws.com |
 | **API documentation** | http://event-ledger-alb-1832743372.us-east-1.elb.amazonaws.com/docs |
 | **Health check** | http://event-ledger-alb-1832743372.us-east-1.elb.amazonaws.com/health |
+| **Jaeger UI** | http://event-ledger-alb-1832743372.us-east-1.elb.amazonaws.com:8080 |
 
 Account Service is **not publicly accessible** — it runs in a private VPC subnet and is reachable only from the Gateway.
 

@@ -42,7 +42,8 @@ flowchart TB
 | **Service discovery** | AWS Cloud Map (private DNS) | Internal: `account-service.event-ledger.local` |
 | **Container registry** | Amazon ECR | Private; CI pushes images on deploy |
 | **Persistence** | SQLite (per-task ephemeral) | PoC only — replace with RDS for production |
-| **Observability** | CloudWatch Logs | Per-service log groups |
+| **Observability** | OTel Collector + Jaeger (VPC) | Traces via private collector; Jaeger UI on ALB :8080 |
+| **Logging** | CloudWatch Logs | Per-service log groups |
 
 ## Network security
 

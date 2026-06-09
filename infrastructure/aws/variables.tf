@@ -20,6 +20,17 @@ variable "account_image" {
   type        = string
 }
 
+variable "otel_collector_image" {
+  description = "ECR image URI for the OTel Collector"
+  type        = string
+}
+
+variable "jaeger_image" {
+  description = "Container image for Jaeger all-in-one"
+  type        = string
+  default     = "jaegertracing/all-in-one:1.54"
+}
+
 variable "github_repository" {
   description = "GitHub repository in owner/repo format for OIDC trust"
   type        = string
