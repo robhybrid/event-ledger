@@ -19,6 +19,8 @@ uv pip install -e ".[dev]"
 uv run pytest -v
 ```
 
+An HTML coverage report is generated at `htmlcov/index.html` on every run. In GitHub Actions, download the **`html-coverage-report`** artifact from the workflow run summary.
+
 No AWS credentials are required for CI.
 
 ## Continuous deployment

@@ -154,6 +154,14 @@ curl -X POST http://localhost:8000/events \
 uv run pytest
 ```
 
+Every test run generates an **HTML coverage report** at `htmlcov/index.html` (configured in `pyproject.toml`).
+
+```bash
+open htmlcov/index.html   # macOS — view the report in your browser
+```
+
+On GitHub Actions, download the `html-coverage-report` artifact from any CI run.
+
 Test coverage includes:
 
 - Core functionality (idempotency, out-of-order, balance, validation)
