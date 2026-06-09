@@ -59,6 +59,16 @@ jobs:
           echo "otel_collector_image=$REGISTRY/${PROJECT_NAME}-otel-collector:${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
           echo "otel_collector_latest=$REGISTRY/${PROJECT_NAME}-otel-collector:latest" >> "$GITHUB_OUTPUT"
 
+      - name: Ensure ECR repositories exist
+        run: |
+          for repo in gateway account otel-collector; do
+            NAME="${PROJECT_NAME}-${repo}"
+            if ! aws ecr describe-repositories --repository-names "$NAME" >/dev/null 2>&1; then
+              aws ecr create-repository --repository-name "$NAME" \
+                --image-scanning-configuration scanOnPush=true
+            fi
+          done
+
       - name: Build and push Docker images
         run: |
           docker build --target gateway -t "${{ steps.images.outputs.gateway_image }}" \
