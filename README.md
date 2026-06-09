@@ -13,6 +13,8 @@ Deployed on AWS ECS Fargate (Account Service is VPC-private; only the Gateway is
 | **Health check** | http://event-ledger-alb-1832743372.us-east-1.elb.amazonaws.com/health |
 | **Jaeger UI** | http://event-ledger-alb-1832743372.us-east-1.elb.amazonaws.com:8080 |
 
+Tracing is **self-hosted in the VPC**: Gateway and Account export OTLP to an OpenTelemetry Collector (`otel-collector.event-ledger.local`), which forwards spans to Jaeger (`jaeger.event-ledger.local`). The Jaeger UI is exposed on ALB port **8080**; collector and Jaeger tasks run in private subnets.
+
 Account Service is **not publicly accessible** — it runs in a private VPC subnet and is reachable only from the Gateway.
 
 ```bash

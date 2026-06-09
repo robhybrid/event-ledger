@@ -115,16 +115,9 @@ jobs:
       - name: Import pre-created ECR repositories
         working-directory: infrastructure/aws
         run: |
-          for pair in "gateway:gateway" "account:account" "otel-collector:otel_collector"; do
-            REPO_SUFFIX="${pair%%:*}"
-            TF_RESOURCE="${pair##*:}"
-            NAME="${PROJECT_NAME}-${REPO_SUFFIX}"
-            if aws ecr describe-repositories --repository-names "$NAME" >/dev/null 2>&1; then
-              if ! terraform state show "aws_ecr_repository.${TF_RESOURCE}" >/dev/null 2>&1; then
-                terraform import "aws_ecr_repository.${TF_RESOURCE}" "$NAME"
-              fi
-            fi
-          done
+          # CI may create the otel-collector repo before Terraform apply; import if needed.
+          terraform import -input=false aws_ecr_repository.otel_collector \
+            "${PROJECT_NAME}-otel-collector" || true
 
       - name: Terraform apply
         working-directory: infrastructure/aws
