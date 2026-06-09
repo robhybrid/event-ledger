@@ -2,7 +2,9 @@
 
 A production-style proof-of-concept for processing financial transaction events across two independent microservices. Built with Python, FastAPI, and SQLite to demonstrate distributed systems engineering: idempotency, out-of-order tolerance, observability, resiliency, and graceful degradation.
 
-## Live demo (AWS)
+## Demo
+
+Deployed on AWS ECS Fargate (Account Service is VPC-private; only the Gateway is public).
 
 | Resource | URL |
 |---|---|
@@ -152,13 +154,10 @@ curl -X POST http://localhost:8000/events \
 
 ```bash
 uv run pytest
+open htmlcov/index.html   # macOS — view the report in your browser
 ```
 
 Every test run generates an **HTML coverage report** at `htmlcov/index.html` (configured in `pyproject.toml`).
-
-```bash
-open htmlcov/index.html   # macOS — view the report in your browser
-```
 
 On GitHub Actions, download the `html-coverage-report` artifact from any CI run.
 
