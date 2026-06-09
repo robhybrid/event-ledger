@@ -22,7 +22,9 @@ jobs:
         with:
           enable-cache: true
       - run: uv python install 3.13
-      - run: uv pip install -e ".[dev]"
+      - run: |
+          uv venv
+          uv pip install -e ".[dev]"
       - run: uv run pytest -v
 
   deploy:
