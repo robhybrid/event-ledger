@@ -116,8 +116,12 @@ jobs:
         working-directory: infrastructure/aws
         run: |
           # CI may create the otel-collector repo before Terraform apply; import if needed.
-          terraform import -input=false aws_ecr_repository.otel_collector \
-            "${PROJECT_NAME}-otel-collector" || true
+          terraform import -input=false \
+            -var="gateway_image=${{ steps.images.outputs.gateway_image }}" \
+            -var="account_image=${{ steps.images.outputs.account_image }}" \
+            -var="otel_collector_image=${{ steps.images.outputs.otel_collector_image }}" \
+            -var="github_repository=${{ github.repository }}" \
+            aws_ecr_repository.otel_collector "${PROJECT_NAME}-otel-collector" || true
 
       - name: Terraform apply
         working-directory: infrastructure/aws
