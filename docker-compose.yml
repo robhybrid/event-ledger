@@ -1,10 +1,16 @@
+# Production-like topology: only the Gateway and observability tools are exposed to the host.
+# Account Service is reachable only on the internal Docker network.
+#
+# For local debugging with Account Service exposed on :8001, use:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+
 services:
   account-service:
     build:
       context: .
       target: account
-    ports:
-      - "8001:8001"
+    expose:
+      - "8001"
     environment:
       ACCOUNT_DATABASE_URL: sqlite+aiosqlite:////data/account.db
       ACCOUNT_OTLP_ENDPOINT: otel-collector:4317
@@ -48,8 +54,8 @@ services:
     command: ["--config=/etc/otel-collector-config.yaml"]
     volumes:
       - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
-    ports:
-      - "4317:4317"
+    expose:
+      - "4317"
     depends_on:
       jaeger:
         condition: service_started
@@ -58,7 +64,6 @@ services:
     image: jaegertracing/all-in-one:1.54
     ports:
       - "16686:16686"
-      - "14250:14250"
     environment:
       COLLECTOR_OTLP_ENABLED: "true"
 

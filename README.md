@@ -37,7 +37,7 @@ When the Account Service is unavailable, `POST /events` returns HTTP 503 but sto
 ### Observability
 
 - **Structured JSON logging** with `trace_id`, timestamp, level, and service name
-- **Distributed tracing** via OpenTelemetry, propagated through `X-Trace-Id` header
+- **Distributed tracing** via OpenTelemetry with W3C `traceparent` propagation and `X-Trace-Id` for log correlation
 - **Prometheus metrics** at `GET /metrics` on both services
 - **Jaeger UI** at `http://localhost:16686` when running via Docker Compose
 
@@ -78,20 +78,30 @@ GATEWAY_ACCOUNT_SERVICE_URL=http://localhost:8001 \
 
 ### Start with Docker Compose
 
+The default compose file mirrors production topology: **only the Gateway and Jaeger are exposed** to your host. Account Service is internal to the Docker network.
+
 ```bash
 docker compose up --build
 ```
 
-You can also start the stack from the **Run and Debug** panel (play button) by selecting **Docker Compose: Up**. Use **Docker Compose: Down** to stop and remove containers.
+For local debugging with Account Service and the OTLP collector exposed on the host:
 
-| Endpoint | URL |
-|---|---|
-| Gateway API | http://localhost:8000 |
-| API Documentation | http://localhost:8000/docs |
-| Account Service | http://localhost:8001 |
-| Jaeger UI | http://localhost:16686 |
-| Gateway metrics | http://localhost:8000/metrics |
-| Account metrics | http://localhost:8001/metrics |
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+```
+
+You can also start the stack from the **Run and Debug** panel — **Docker Compose: Up (Dev)** includes the dev overrides.
+
+| Endpoint | URL | Default compose | Dev override |
+|---|---|---|---|
+| Gateway API | http://localhost:8000 | Yes | Yes |
+| API Documentation | http://localhost:8000/docs | Yes | Yes |
+| Account Service | http://localhost:8001 | No (internal only) | Yes |
+| Jaeger UI | http://localhost:16686 | Yes | Yes |
+| Gateway metrics | http://localhost:8000/metrics | Yes | Yes |
+| Account metrics | http://localhost:8001/metrics | No | Yes |
+
+**Jaeger:** open http://localhost:16686 in your browser (not the Docker terminal logs). Select both `event-gateway` and `account-service` from the Service dropdown. Submit a `POST /events` request to generate a distributed trace spanning both services.
 
 ### Example request
 

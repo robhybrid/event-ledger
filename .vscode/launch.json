@@ -9,6 +9,13 @@
       "cwd": "${workspaceFolder}"
     },
     {
+      "name": "Docker Compose: Up (Dev)",
+      "request": "launch",
+      "type": "node-terminal",
+      "command": "docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build",
+      "cwd": "${workspaceFolder}"
+    },
+    {
       "name": "Docker Compose: Down",
       "request": "launch",
       "type": "node-terminal",

@@ -1,0 +1,11 @@
+# Development overrides — expose internal services for local debugging.
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+
+services:
+  account-service:
+    ports:
+      - "8001:8001"
+
+  otel-collector:
+    ports:
+      - "4317:4317"

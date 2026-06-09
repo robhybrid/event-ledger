@@ -1,6 +1,21 @@
 # AWS Deployment (ECS Fargate)
 
-This Terraform configuration deploys the Event Ledger to AWS ECS Fargate with an Application Load Balancer exposing the Gateway.
+This Terraform configuration deploys the Event Ledger to AWS ECS Fargate with a **public Gateway** and a **private Account Service**.
+
+## Network topology
+
+```
+Internet → ALB (public) → Gateway ECS (public subnet)
+                              │
+                              └──→ Account ECS (private subnet, no public IP)
+                                   DNS: account-service.event-ledger.local
+```
+
+| Component | Exposure | Notes |
+|---|---|---|
+| **ALB + Gateway** | Public internet | Only entry point for clients |
+| **Account Service** | VPC-private | Private subnets, no public IP, security group allows port 8001 from Gateway SG only |
+| **Service discovery** | Internal DNS | Gateway reaches Account at `http://account-service.<project>.local:8001` |
 
 ## Prerequisites
 
@@ -41,11 +56,15 @@ terraform apply
 
 ## Outputs
 
-After apply, `gateway_url` provides the public HTTP endpoint for the Event Gateway API.
+| Output | Description |
+|---|---|
+| `gateway_url` | Public HTTP endpoint for the Event Gateway API |
+| `account_service_dns` | Private DNS name for Account Service (not internet-reachable) |
+| `ecs_cluster` | ECS cluster name |
 
 ## Production notes
 
 - Replace SQLite with RDS or another managed database for production durability
 - Use AWS Secrets Manager for sensitive configuration
 - Add HTTPS via ACM certificate on the ALB
-- Use service discovery or internal ALB for Gateway → Account communication instead of public DNS
+- NAT Gateway is included so private-subnet tasks can pull images and reach AWS APIs
