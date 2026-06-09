@@ -112,6 +112,20 @@ jobs:
             -backend-config="key=${PROJECT_NAME}/terraform.tfstate" \
             -backend-config="region=${AWS_REGION}"
 
+      - name: Import pre-created ECR repositories
+        working-directory: infrastructure/aws
+        run: |
+          for pair in "gateway:gateway" "account:account" "otel-collector:otel_collector"; do
+            REPO_SUFFIX="${pair%%:*}"
+            TF_RESOURCE="${pair##*:}"
+            NAME="${PROJECT_NAME}-${REPO_SUFFIX}"
+            if aws ecr describe-repositories --repository-names "$NAME" >/dev/null 2>&1; then
+              if ! terraform state show "aws_ecr_repository.${TF_RESOURCE}" >/dev/null 2>&1; then
+                terraform import "aws_ecr_repository.${TF_RESOURCE}" "$NAME"
+              fi
+            fi
+          done
+
       - name: Terraform apply
         working-directory: infrastructure/aws
         run: |
