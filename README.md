@@ -2,6 +2,36 @@
 
 A production-style proof-of-concept for processing financial transaction events across two independent microservices. Built with Python, FastAPI, and SQLite to demonstrate distributed systems engineering: idempotency, out-of-order tolerance, observability, resiliency, and graceful degradation.
 
+## Live demo (AWS)
+
+| Resource | URL |
+|---|---|
+| **Gateway API** | http://event-ledger-alb-1832743372.us-east-1.elb.amazonaws.com |
+| **API documentation** | http://event-ledger-alb-1832743372.us-east-1.elb.amazonaws.com/docs |
+| **Health check** | http://event-ledger-alb-1832743372.us-east-1.elb.amazonaws.com/health |
+
+Account Service is **not publicly accessible** — it runs in a private VPC subnet and is reachable only from the Gateway.
+
+```bash
+curl -X POST http://event-ledger-alb-1832743372.us-east-1.elb.amazonaws.com/events \
+  -H "Content-Type: application/json" \
+  -d '{
+    "eventId": "evt-demo-001",
+    "accountId": "acct-demo",
+    "type": "CREDIT",
+    "amount": "150.00",
+    "currency": "USD",
+    "eventTimestamp": "2026-06-09T18:00:00Z"
+  }'
+```
+
+## Documentation
+
+| Document | Description |
+|---|---|
+| [Cloud Architecture](docs/cloud-architecture.md) | AWS VPC topology, security groups, request flow |
+| [CI/CD Guide](docs/ci-cd.md) | GitHub Actions workflows, OIDC deployment, rollback |
+
 ## Architecture
 
 ```
@@ -122,7 +152,6 @@ curl -X POST http://localhost:8000/events \
 
 ```bash
 uv run pytest
-uv run pytest --cov=ledger_common --cov=services -v
 ```
 
 Test coverage includes:
@@ -147,9 +176,9 @@ Stretch goals from the project requirements that are implemented:
 | Async fallback: local queue when Account Service is down | Implemented (`queue_worker`, `GATEWAY_QUEUE_PROCESSING_ENABLED`) |
 | AWS deployment (ECS Fargate) | Implemented (`infrastructure/aws/`) |
 
-## AWS deployment (stretch goal)
+## AWS deployment
 
-Terraform configuration for ECS Fargate is in `infrastructure/aws/`. See [infrastructure/aws/README.md](infrastructure/aws/README.md) for build, push, and deploy instructions.
+Deployed to **ECS Fargate** via Terraform and GitHub Actions. See [docs/ci-cd.md](docs/ci-cd.md) for the pipeline and [infrastructure/aws/README.md](infrastructure/aws/README.md) for manual deploy steps.
 
 ## Project structure
 
@@ -162,7 +191,9 @@ Terraform configuration for ECS Fargate is in `infrastructure/aws/`. See [infras
 │   ├── unit/
 │   ├── integration/
 │   └── contract/
+├── docs/                   # Cloud architecture and CI/CD guides
 ├── infrastructure/aws/     # Terraform for ECS Fargate
+├── .github/workflows/      # CI (pytest) and CD (AWS deploy)
 ├── docker-compose.yml
 ├── Dockerfile
 └── pyproject.toml
