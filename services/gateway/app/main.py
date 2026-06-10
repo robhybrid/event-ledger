@@ -16,6 +16,7 @@ from ledger_common.tracing import (
     setup_tracing,
     shutdown_tracing,
 )
+from services.gateway.app.account_client import close_account_service_client
 from services.gateway.app.config import settings
 from services.gateway.app.limiter import limiter
 from services.gateway.app.database import check_db, init_db
@@ -44,6 +45,7 @@ async def lifespan(app: FastAPI):
         _stop_event.set()
     if _worker_task:
         await _worker_task
+    await close_account_service_client()
     flush_tracing()
     shutdown_tracing()
     logger.info("gateway_stopped")
@@ -64,8 +66,8 @@ app = FastAPI(
 )
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-instrument_fastapi(app, settings.service_name)
 app.add_middleware(TraceIdMiddleware)
+instrument_fastapi(app, settings.service_name)
 app.include_router(router)
 app.include_router(accounts_router)
 install_contract_openapi(app)

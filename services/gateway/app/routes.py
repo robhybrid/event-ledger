@@ -18,6 +18,7 @@ from services.gateway.app.account_client import (
     AccountServiceClient,
     AccountServiceError,
     AccountServiceUnavailable,
+    get_account_service_client,
 )
 from services.gateway.app.database import get_db
 from services.gateway.app.limiter import limiter
@@ -28,11 +29,8 @@ router = APIRouter(tags=[TAG_EVENTS])
 accounts_router = APIRouter(tags=[TAG_ACCOUNTS])
 
 
-_account_client = AccountServiceClient()
-
-
 def get_account_client() -> AccountServiceClient:
-    return _account_client
+    return get_account_service_client()
 
 
 def _to_response(record) -> EventResponse:

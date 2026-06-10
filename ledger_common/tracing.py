@@ -71,6 +71,12 @@ def flush_tracing(timeout_millis: int = 5000) -> bool:
     return True
 
 
+def _server_request_hook(span, _scope) -> None:
+    """Capture trace ID when the server span starts (before it ends on response)."""
+    if span and span.get_span_context().is_valid:
+        trace_id_var.set(format(span.get_span_context().trace_id, "032x"))
+
+
 def instrument_fastapi(app, _service_name: str) -> None:
     provider = trace.get_tracer_provider()
     kwargs: dict = {
@@ -78,6 +84,7 @@ def instrument_fastapi(app, _service_name: str) -> None:
         # Keep a single server span per request so outbound httpx calls inherit
         # the same trace ID instead of splitting into separate traces.
         "exclude_spans": ["receive", "send"],
+        "server_request_hook": _server_request_hook,
     }
     if isinstance(provider, TracerProvider):
         kwargs["tracer_provider"] = provider
@@ -89,11 +96,11 @@ def get_tracer(name: str):
 
 
 class TraceIdMiddleware(BaseHTTPMiddleware):
-    """Expose the active OpenTelemetry trace ID for logs and response headers."""
+    """Expose trace ID for logs and response headers (runs inside OTel instrumentation)."""
 
     async def dispatch(self, request: Request, call_next):
+        _prime_trace_id(request)
         response = await call_next(request)
-
         trace_id = _resolve_trace_id(request)
         trace_id_var.set(trace_id)
 
@@ -105,10 +112,36 @@ class TraceIdMiddleware(BaseHTTPMiddleware):
         return response
 
 
+def _prime_trace_id(request: Request) -> None:
+    """Set trace_id_var from propagated context before request handling."""
+    span = trace.get_current_span()
+    if span and span.get_span_context().is_valid:
+        trace_id_var.set(format(span.get_span_context().trace_id, "032x"))
+        return
+
+    traceparent = request.headers.get("traceparent", "")
+    parts = traceparent.split("-")
+    if len(parts) >= 2 and len(parts[1]) == 32:
+        trace_id_var.set(parts[1])
+        return
+
+    if tid := request.headers.get(TRACE_ID_HEADER):
+        trace_id_var.set(tid)
+
+
 def _resolve_trace_id(request: Request) -> str:
     span = trace.get_current_span()
     if span and span.get_span_context().is_valid:
         return format(span.get_span_context().trace_id, "032x")
+
+    if tid := trace_id_var.get():
+        return tid
+
+    traceparent = request.headers.get("traceparent", "")
+    parts = traceparent.split("-")
+    if len(parts) >= 2 and len(parts[1]) == 32:
+        return parts[1]
+
     return request.headers.get(TRACE_ID_HEADER) or str(uuid.uuid4())
 
 

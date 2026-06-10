@@ -47,8 +47,8 @@ app = FastAPI(
     openapi_tags=OPENAPI_TAGS,
     lifespan=lifespan,
 )
-instrument_fastapi(app, settings.service_name)
 app.add_middleware(TraceIdMiddleware)
+instrument_fastapi(app, settings.service_name)
 app.include_router(router)
 install_contract_openapi(app)
 

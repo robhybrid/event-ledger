@@ -46,6 +46,9 @@ class AccountServiceClient:
         self._base_url = (base_url or settings.account_service_url).rstrip("/")
         self._client = httpx.AsyncClient(timeout=settings.request_timeout_seconds)
 
+    async def aclose(self) -> None:
+        await self._client.aclose()
+
     def _headers(self) -> dict[str, str]:
         headers = {"Content-Type": "application/json"}
         headers.update(trace_headers())
@@ -152,3 +155,20 @@ class AccountServiceClient:
             return response.status_code == 200
         except Exception:
             return False
+
+
+_account_service_client: AccountServiceClient | None = None
+
+
+def get_account_service_client() -> AccountServiceClient:
+    global _account_service_client
+    if _account_service_client is None:
+        _account_service_client = AccountServiceClient()
+    return _account_service_client
+
+
+async def close_account_service_client() -> None:
+    global _account_service_client
+    if _account_service_client is not None:
+        await _account_service_client.aclose()
+        _account_service_client = None
