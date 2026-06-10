@@ -1,5 +1,4 @@
 import json
-from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import JSONResponse
@@ -10,7 +9,6 @@ from ledger_common.openapi import ERROR_RESPONSES, TAG_ACCOUNTS, TAG_EVENTS
 from ledger_common.schemas import (
     ApplyTransactionRequest,
     BalanceResponse,
-    ErrorResponse,
     EventCreate,
     EventResponse,
     TransactionType,

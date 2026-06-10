@@ -12,7 +12,7 @@ from ledger_common.circuit_breaker import CircuitBreaker
 from ledger_common.logging import get_logger
 from ledger_common.metrics import ACCOUNT_SERVICE_CALLS, CIRCUIT_BREAKER_STATE
 from ledger_common.schemas import ApplyTransactionRequest, BalanceResponse, TransactionRecord
-from ledger_common.tracing import TRACE_ID_HEADER, get_trace_id, trace_headers
+from ledger_common.tracing import get_trace_id, trace_headers
 from services.gateway.app.config import settings
 
 logger = get_logger(__name__)
@@ -45,9 +45,6 @@ class AccountServiceClient:
     def __init__(self, base_url: str | None = None):
         self._base_url = (base_url or settings.account_service_url).rstrip("/")
         self._client = httpx.AsyncClient(timeout=settings.request_timeout_seconds)
-
-    async def aclose(self) -> None:
-        await self._client.aclose()
 
     def _headers(self) -> dict[str, str]:
         headers = {"Content-Type": "application/json"}

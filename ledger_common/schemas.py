@@ -128,7 +128,28 @@ class TransactionRecord(BaseModel):
 
 
 class AccountDetailResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(
+        populate_by_name=True,
+        json_schema_extra={
+            "examples": [
+                {
+                    "accountId": "acct-demo",
+                    "balance": "150.0000",
+                    "currency": "USD",
+                    "transactions": [
+                        {
+                            "eventId": "evt-demo-001",
+                            "type": "CREDIT",
+                            "amount": "150.0000",
+                            "currency": "USD",
+                            "eventTimestamp": "2026-06-09T18:00:00Z",
+                            "appliedAt": "2026-06-09T18:00:01Z",
+                        }
+                    ],
+                }
+            ]
+        },
+    )
 
     account_id: str = Field(..., alias="accountId")
     balance: MoneyAmount
@@ -137,4 +158,6 @@ class AccountDetailResponse(BaseModel):
 
 
 class ErrorResponse(BaseModel):
+    model_config = ConfigDict(json_schema_extra={"examples": [{"detail": "Event not found"}]})
+
     detail: str

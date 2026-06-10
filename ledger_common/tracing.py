@@ -71,7 +71,7 @@ def flush_tracing(timeout_millis: int = 5000) -> bool:
     return True
 
 
-def instrument_fastapi(app, service_name: str) -> None:
+def instrument_fastapi(app, _service_name: str) -> None:
     provider = trace.get_tracer_provider()
     kwargs: dict = {
         "excluded_urls": "/health,/metrics",

@@ -1,6 +1,6 @@
 # Cloud Architecture
 
-Event Ledger on AWS ECS Fargate — public Gateway, private Account Service.
+AWS ECS Fargate deployment — public Gateway, private Account Service. See [README](../README.md) for local setup.
 
 ## High-level topology
 

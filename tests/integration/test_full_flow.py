@@ -14,17 +14,9 @@ from services.account.app.database import Base as AccountBase
 from services.account.app.main import app as account_app
 from services.gateway.app.database import Base as GatewayBase
 from services.gateway.app.main import app as gateway_app
-from services.gateway.app.account_client import circuit_breaker
 from services.gateway.app.routes import get_account_client
 from services.gateway.app.repository import EventRepository
 from tests.conftest import sample_event
-
-
-@pytest.fixture(autouse=True)
-def reset_circuit_breaker():
-    circuit_breaker.reset()
-    yield
-    circuit_breaker.reset()
 
 
 @pytest_asyncio.fixture(autouse=True)

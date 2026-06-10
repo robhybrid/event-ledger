@@ -1,6 +1,6 @@
 # CI/CD Guide
 
-Event Ledger uses GitHub Actions for continuous integration and deployment to AWS ECS Fargate.
+GitHub Actions CI (pytest) and CD (ECS Fargate via Terraform + OIDC).
 
 ## Workflows
 

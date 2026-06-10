@@ -3,10 +3,8 @@
 import pytest
 
 from ledger_common.schemas import (
-    AccountDetailResponse,
     ApplyTransactionRequest,
     BalanceResponse,
-    ErrorResponse,
     EventCreate,
     EventResponse,
     TransactionRecord,
@@ -50,12 +48,16 @@ def test_account_openapi_includes_contract_schema(schema_name):
 
 
 def test_contract_models_include_examples():
+    from ledger_common.schemas import AccountDetailResponse, ErrorResponse
+
     for model in (
         EventCreate,
         EventResponse,
         ApplyTransactionRequest,
         TransactionRecord,
         BalanceResponse,
+        AccountDetailResponse,
+        ErrorResponse,
     ):
         schema = model.model_json_schema()
         assert "examples" in schema, f"{model.__name__} has no OpenAPI examples"

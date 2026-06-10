@@ -7,7 +7,6 @@ from ledger_common.schemas import (
     AccountDetailResponse,
     ApplyTransactionRequest,
     BalanceResponse,
-    ErrorResponse,
     TransactionRecord,
     TransactionType,
 )

@@ -1,17 +1,13 @@
-import asyncio
 from collections.abc import AsyncGenerator
 
 import pytest
 import pytest_asyncio
-from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from ledger_common.schemas import EventCreate, TransactionType
 from ledger_common.tracing import shutdown_tracing
 from services.account.app.database import Base as AccountBase
-from services.account.app.main import app as account_app
+from services.gateway.app.account_client import circuit_breaker
 from services.gateway.app.database import Base as GatewayBase
-from services.gateway.app.main import app as gateway_app
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -20,11 +16,11 @@ def _shutdown_tracing_after_session():
     shutdown_tracing()
 
 
-@pytest.fixture(scope="session")
-def event_loop():
-    loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
+@pytest.fixture(autouse=True)
+def reset_circuit_breaker():
+    circuit_breaker.reset()
+    yield
+    circuit_breaker.reset()
 
 
 @pytest_asyncio.fixture
@@ -49,20 +45,6 @@ async def gateway_db() -> AsyncGenerator[AsyncSession, None]:
     await engine.dispose()
 
 
-@pytest_asyncio.fixture
-async def account_client() -> AsyncGenerator[AsyncClient, None]:
-    transport = ASGITransport(app=account_app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        yield client
-
-
-@pytest_asyncio.fixture
-async def gateway_client(account_client: AsyncClient) -> AsyncGenerator[AsyncClient, None]:
-    transport = ASGITransport(app=gateway_app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        yield client
-
-
 def sample_event(
     event_id: str = "evt-001",
     account_id: str = "acct-123",
@@ -79,8 +61,3 @@ def sample_event(
         "eventTimestamp": timestamp,
         "metadata": {"source": "test"},
     }
-
-
-@pytest.fixture
-def valid_event_create() -> EventCreate:
-    return EventCreate.model_validate(sample_event())

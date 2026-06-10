@@ -1,7 +1,5 @@
 """Pact provider verification: Account Service satisfies Gateway contracts."""
 
-from pathlib import Path
-
 import pytest
 from pact import Verifier
 

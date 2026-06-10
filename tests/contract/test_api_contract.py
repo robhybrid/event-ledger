@@ -1,7 +1,6 @@
 """Contract tests verifying Gateway ↔ Account Service API schema alignment."""
 
 import json
-from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -41,7 +40,7 @@ def test_gateway_event_payload_matches_contract(event_payload_schema):
 
 
 def test_gateway_to_account_request_matches_contract(apply_transaction_schema):
-    from ledger_common.schemas import ApplyTransactionRequest, EventCreate, TransactionType
+    from ledger_common.schemas import ApplyTransactionRequest, EventCreate
 
     event = EventCreate.model_validate(
         {

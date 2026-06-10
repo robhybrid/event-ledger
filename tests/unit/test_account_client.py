@@ -3,18 +3,7 @@ import pytest
 import respx
 
 from ledger_common.schemas import ApplyTransactionRequest, TransactionType
-from services.gateway.app.account_client import (
-    AccountServiceClient,
-    AccountServiceUnavailable,
-    circuit_breaker,
-)
-
-
-@pytest.fixture(autouse=True)
-def reset_circuit_breaker():
-    circuit_breaker.reset()
-    yield
-    circuit_breaker.reset()
+from services.gateway.app.account_client import AccountServiceClient, AccountServiceUnavailable
 
 
 @pytest.mark.asyncio

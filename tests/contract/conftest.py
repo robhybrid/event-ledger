@@ -18,19 +18,10 @@ from ledger_common.tracing import shutdown_tracing
 from services.account.app.database import Base as AccountBase
 from services.account.app.main import app as account_app
 from services.account.app.repository import AccountRepository
-from services.gateway.app.account_client import circuit_breaker
-
 PACT_DIR = Path(__file__).resolve().parent.parent / "pacts"
 PACT_ACCOUNT_ID = "acct-pact-001"
 PACT_EVENT_ID = "evt-pact-001"
 PACT_TIMESTAMP = datetime(2026, 5, 15, 14, 2, 11, tzinfo=timezone.utc)
-
-
-@pytest.fixture(autouse=True)
-def reset_circuit_breaker():
-    circuit_breaker.reset()
-    yield
-    circuit_breaker.reset()
 
 
 @pytest.fixture
