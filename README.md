@@ -4,6 +4,25 @@ A take-home project turned into a **production-style distributed systems demo**:
 
 The brief asked for a working ledger with tracing and one resiliency pattern. This implementation goes further — private service boundaries, full observability stack, contract testing, async recovery, and AWS deployment — while keeping the codebase small and readable.
 
+## Live demo (AWS)
+
+Deployed on ECS Fargate. Account Service is VPC-private; only the Gateway and Jaeger UI are public.
+
+| Resource | URL |
+|---|---|
+| **Gateway API** | http://event-ledger-alb-1832743372.us-east-1.elb.amazonaws.com |
+| **API documentation** | http://event-ledger-alb-1832743372.us-east-1.elb.amazonaws.com/docs |
+| **Health check** | http://event-ledger-alb-1832743372.us-east-1.elb.amazonaws.com/health |
+| **Jaeger UI** | http://event-ledger-alb-1832743372.us-east-1.elb.amazonaws.com:8080 |
+
+Tracing runs in the VPC: services export OTLP to `otel-collector.event-ledger.local`, which forwards to Jaeger. Submit an event via the Gateway, then open Jaeger and select `event-gateway` and `account-service` to see the distributed trace.
+
+```bash
+curl -X POST http://event-ledger-alb-1832743372.us-east-1.elb.amazonaws.com/events \
+  -H "Content-Type: application/json" \
+  -d '{"eventId":"evt-demo-001","accountId":"acct-demo","type":"CREDIT","amount":"150.00","currency":"USD","eventTimestamp":"2026-06-09T18:00:00Z"}'
+```
+
 ## Beyond the requirements
 
 | Area | What was added |
@@ -75,9 +94,9 @@ Appropriate for a portfolio demo, not production as-is:
 - **Input validation** via Pydantic; SQLAlchemy ORM (parameterized queries); rate limiting on `POST /events`.
 - **Secrets** — no credentials in repo; AWS deploy uses GitHub OIDC, not long-lived keys.
 
-## AWS (optional)
+## AWS deployment
 
-Terraform and a GitHub Actions pipeline can deploy to ECS Fargate. See [infrastructure/aws/README.md](infrastructure/aws/README.md) for deploy/teardown. The stack mirrors local topology: public Gateway, private Account, VPC-hosted Jaeger.
+Infrastructure is defined in Terraform and deployed via GitHub Actions on push to `main`. See [infrastructure/aws/README.md](infrastructure/aws/README.md) for manual deploy/teardown and [docs/ci-cd.md](docs/ci-cd.md) for the pipeline.
 
 ## Project layout
 
