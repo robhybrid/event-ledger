@@ -71,6 +71,8 @@ terraform destroy
 
 Use the same `-var` flags (or `terraform.tfvars`) as deploy. ECS services and the NAT Gateway can take several minutes to drain.
 
+**Automated:** set GitHub repo variable `DESTROY_AFTER` (`YYYY-MM-DD`). The [destroy-aws workflow](../../.github/workflows/destroy-aws.yml) runs daily and destroys on or after that date. Manual immediate destroy: run that workflow with **force** checked.
+
 ## Outputs
 
 | Output | Description |

@@ -8,6 +8,7 @@ GitHub Actions CI (pytest) and CD (ECS Fargate via Terraform + OIDC).
 |---|---|---|
 | [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) | Push / PR to `main` | Run unit, integration, and contract tests |
 | [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml) | Push to `main` (after CI) | Build Docker images, push to ECR, deploy via Terraform |
+| [`.github/workflows/destroy-aws.yml`](../.github/workflows/destroy-aws.yml) | Daily schedule + manual | `terraform destroy` when `DESTROY_AFTER` has passed |
 
 ## Continuous integration
 
@@ -71,6 +72,23 @@ terraform apply \
 ### Terraform remote state
 
 State is stored in S3 (`event-ledger-terraform-state-<account-id>`) so GitHub Actions and local runs share the same state.
+
+## Scheduled teardown (cost control)
+
+To avoid leaving the ECS/NAT/ALB stack running indefinitely:
+
+1. In GitHub → **Settings → Secrets and variables → Actions → Variables**, add:
+   | Variable | Example | Purpose |
+   |---|---|---|
+   | `DESTROY_AFTER` | `2026-06-17` | Last day to keep AWS up (`YYYY-MM-DD`, UTC). Destroy runs on or after this date. |
+
+2. [`.github/workflows/destroy-aws.yml`](../.github/workflows/destroy-aws.yml) runs **daily at 06:00 UTC** and calls `terraform destroy` once the date has passed.
+
+3. To tear down immediately: **Actions → Destroy AWS (scheduled) → Run workflow** and check **force**.
+
+After destroy, live README URLs will stop working until you deploy again. ECR images and Terraform state in S3 remain (pennies/month).
+
+**Billing note:** NAT Gateway, ALB, Fargate tasks, and the NAT Elastic IP are billed **per hour** while they exist (Fargate bills per second; NAT/ALB per hour). Stopping ECS tasks alone does not stop NAT/ALB charges — full `terraform destroy` does.
 
 ## Rollback
 

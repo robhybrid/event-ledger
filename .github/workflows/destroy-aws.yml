@@ -1,0 +1,111 @@
+name: Destroy AWS (scheduled)
+
+on:
+  schedule:
+    # Daily at 06:00 UTC — destroys once DESTROY_AFTER (repo variable) has passed
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Destroy immediately (ignore DESTROY_AFTER)
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: destroy-aws
+  cancel-in-progress: false
+
+jobs:
+  destroy:
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: us-east-1
+      PROJECT_NAME: event-ledger
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check destroy deadline
+        id: gate
+        env:
+          DESTROY_AFTER: ${{ vars.DESTROY_AFTER }}
+          FORCE: ${{ github.event_name == 'workflow_dispatch' && inputs.force }}
+        run: |
+          set -euo pipefail
+          TODAY=$(date -u +%Y-%m-%d)
+
+          if [[ "${FORCE}" == "true" ]]; then
+            echo "should_destroy=true" >> "$GITHUB_OUTPUT"
+            echo "Force destroy requested."
+            exit 0
+          fi
+
+          if [[ -z "${DESTROY_AFTER}" ]]; then
+            echo "should_destroy=false" >> "$GITHUB_OUTPUT"
+            echo "DESTROY_AFTER repo variable is not set; skipping."
+            exit 0
+          fi
+
+          if [[ ! "${DESTROY_AFTER}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+            echo "DESTROY_AFTER must be YYYY-MM-DD (got: ${DESTROY_AFTER})"
+            exit 1
+          fi
+
+          if [[ "${TODAY}" < "${DESTROY_AFTER}" ]]; then
+            echo "should_destroy=false" >> "$GITHUB_OUTPUT"
+            echo "Today (${TODAY}) is before DESTROY_AFTER (${DESTROY_AFTER}); skipping."
+            exit 0
+          fi
+
+          echo "should_destroy=true" >> "$GITHUB_OUTPUT"
+          echo "Today (${TODAY}) is on or after DESTROY_AFTER (${DESTROY_AFTER}); will destroy."
+
+      - name: Configure AWS credentials
+        if: steps.gate.outputs.should_destroy == 'true'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        if: steps.gate.outputs.should_destroy == 'true'
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.0
+
+      - name: Terraform init
+        if: steps.gate.outputs.should_destroy == 'true'
+        working-directory: infrastructure/aws
+        run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          BUCKET="${PROJECT_NAME}-terraform-state-${ACCOUNT_ID}"
+          terraform init \
+            -backend-config="bucket=${BUCKET}" \
+            -backend-config="key=${PROJECT_NAME}/terraform.tfstate" \
+            -backend-config="region=${AWS_REGION}"
+
+      - name: Terraform destroy
+        if: steps.gate.outputs.should_destroy == 'true'
+        working-directory: infrastructure/aws
+        run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          REGISTRY="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+          terraform destroy -auto-approve \
+            -var="gateway_image=${REGISTRY}/${PROJECT_NAME}-gateway:latest" \
+            -var="account_image=${REGISTRY}/${PROJECT_NAME}-account:latest" \
+            -var="otel_collector_image=${REGISTRY}/${PROJECT_NAME}-otel-collector:latest" \
+            -var="github_repository=${{ github.repository }}"
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## AWS destroy" >> "$GITHUB_STEP_SUMMARY"
+          if [[ "${{ steps.gate.outputs.should_destroy }}" == "true" ]]; then
+            echo "Terraform destroy completed (or no resources remained)." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Skipped — set repo variable \`DESTROY_AFTER\` (YYYY-MM-DD) or run with **force**." >> "$GITHUB_STEP_SUMMARY"
+          fi

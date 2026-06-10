@@ -98,6 +98,8 @@ Appropriate for a portfolio demo, not production as-is:
 
 Infrastructure is defined in Terraform and deployed via GitHub Actions on push to `main`. See [infrastructure/aws/README.md](infrastructure/aws/README.md) for manual deploy/teardown and [docs/ci-cd.md](docs/ci-cd.md) for the pipeline.
 
+**Cost control:** set GitHub repo variable `DESTROY_AFTER` to a date (`YYYY-MM-DD`, e.g. one week after deploy). A scheduled workflow runs `terraform destroy` on or after that day. Resources bill **per hour** while up (NAT and ALB are the largest fixed costs).
+
 ## Project layout
 
 ```

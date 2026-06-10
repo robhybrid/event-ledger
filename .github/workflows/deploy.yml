@@ -36,17 +36,33 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Skip deploy after destroy deadline
+        id: deploy_gate
+        env:
+          DESTROY_AFTER: ${{ vars.DESTROY_AFTER }}
+        run: |
+          TODAY=$(date -u +%Y-%m-%d)
+          if [[ -n "${DESTROY_AFTER}" && "${TODAY}" > "${DESTROY_AFTER}" ]]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Past DESTROY_AFTER (${DESTROY_AFTER}); skipping deploy."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Configure AWS credentials
+        if: steps.deploy_gate.outputs.skip != 'true'
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
+        if: steps.deploy_gate.outputs.skip != 'true'
         id: ecr
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Set image URIs
+        if: steps.deploy_gate.outputs.skip != 'true'
         id: images
         run: |
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
@@ -60,6 +76,7 @@ jobs:
           echo "otel_collector_latest=$REGISTRY/${PROJECT_NAME}-otel-collector:latest" >> "$GITHUB_OUTPUT"
 
       - name: Ensure ECR repositories exist
+        if: steps.deploy_gate.outputs.skip != 'true'
         run: |
           for repo in gateway account otel-collector; do
             NAME="${PROJECT_NAME}-${repo}"
@@ -70,6 +87,7 @@ jobs:
           done
 
       - name: Build and push Docker images
+        if: steps.deploy_gate.outputs.skip != 'true'
         run: |
           docker build --target gateway -t "${{ steps.images.outputs.gateway_image }}" \
                        -t "${{ steps.images.outputs.gateway_latest }}" .
@@ -86,11 +104,13 @@ jobs:
           docker push "${{ steps.images.outputs.otel_collector_latest }}"
 
       - name: Setup Terraform
+        if: steps.deploy_gate.outputs.skip != 'true'
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.9.0
 
       - name: Ensure Terraform state bucket exists
+        if: steps.deploy_gate.outputs.skip != 'true'
         run: |
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
           BUCKET="${PROJECT_NAME}-terraform-state-${ACCOUNT_ID}"
@@ -105,6 +125,7 @@ jobs:
           echo "TF_STATE_BUCKET=$BUCKET" >> "$GITHUB_ENV"
 
       - name: Terraform init
+        if: steps.deploy_gate.outputs.skip != 'true'
         working-directory: infrastructure/aws
         run: |
           terraform init \
@@ -113,6 +134,7 @@ jobs:
             -backend-config="region=${AWS_REGION}"
 
       - name: Import pre-created ECR repositories
+        if: steps.deploy_gate.outputs.skip != 'true'
         working-directory: infrastructure/aws
         run: |
           # CI may create the otel-collector repo before Terraform apply; import if needed.
@@ -124,6 +146,7 @@ jobs:
             aws_ecr_repository.otel_collector "${PROJECT_NAME}-otel-collector" || true
 
       - name: Terraform apply
+        if: steps.deploy_gate.outputs.skip != 'true'
         working-directory: infrastructure/aws
         run: |
           terraform apply -auto-approve \
@@ -133,6 +156,7 @@ jobs:
             -var="github_repository=${{ github.repository }}"
 
       - name: Output gateway URL
+        if: steps.deploy_gate.outputs.skip != 'true'
         working-directory: infrastructure/aws
         run: |
           echo "## Deployment" >> "$GITHUB_STEP_SUMMARY"
