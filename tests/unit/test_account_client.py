@@ -21,7 +21,17 @@ def reset_circuit_breaker():
 @respx.mock
 async def test_apply_transaction_success():
     respx.post("http://account:8001/accounts/acct-1/transactions").mock(
-        return_value=httpx.Response(200, json={"eventId": "evt-1"})
+        return_value=httpx.Response(
+            200,
+            json={
+                "eventId": "evt-1",
+                "type": "CREDIT",
+                "amount": "100.0000",
+                "currency": "USD",
+                "eventTimestamp": "2026-05-15T14:02:11Z",
+                "appliedAt": "2026-05-15T14:02:12Z",
+            },
+        )
     )
     client = AccountServiceClient("http://account:8001")
     request = ApplyTransactionRequest(
@@ -32,7 +42,7 @@ async def test_apply_transaction_success():
         eventTimestamp="2026-05-15T14:02:11Z",
     )
     result = await client.apply_transaction("acct-1", request)
-    assert result["eventId"] == "evt-1"
+    assert result.event_id == "evt-1"
 
 
 @pytest.mark.asyncio

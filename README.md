@@ -2,34 +2,6 @@
 
 A production-style proof-of-concept for processing financial transaction events across two independent microservices. Built with Python, FastAPI, and SQLite to demonstrate distributed systems engineering: idempotency, out-of-order tolerance, observability, resiliency, and graceful degradation.
 
-## Demo
-
-Deployed on AWS ECS Fargate (Account Service is VPC-private; only the Gateway is public).
-
-| Resource | URL |
-|---|---|
-| **Gateway API** | http://event-ledger-alb-1832743372.us-east-1.elb.amazonaws.com |
-| **API documentation** | http://event-ledger-alb-1832743372.us-east-1.elb.amazonaws.com/docs |
-| **Health check** | http://event-ledger-alb-1832743372.us-east-1.elb.amazonaws.com/health |
-| **Jaeger UI** | http://event-ledger-alb-1832743372.us-east-1.elb.amazonaws.com:8080 |
-
-Tracing is **self-hosted in the VPC**: Gateway and Account export OTLP to an OpenTelemetry Collector (`otel-collector.event-ledger.local`), which forwards spans to Jaeger (`jaeger.event-ledger.local`). The Jaeger UI is exposed on ALB port **8080**; collector and Jaeger tasks run in private subnets.
-
-Account Service is **not publicly accessible** — it runs in a private VPC subnet and is reachable only from the Gateway.
-
-```bash
-curl -X POST http://event-ledger-alb-1832743372.us-east-1.elb.amazonaws.com/events \
-  -H "Content-Type: application/json" \
-  -d '{
-    "eventId": "evt-demo-001",
-    "accountId": "acct-demo",
-    "type": "CREDIT",
-    "amount": "150.00",
-    "currency": "USD",
-    "eventTimestamp": "2026-06-09T18:00:00Z"
-  }'
-```
-
 ## Documentation
 
 | Document | Description |
@@ -170,7 +142,8 @@ Test coverage includes:
 - Circuit breaker and retry behavior
 - Trace ID propagation
 - Full Gateway → Account Service integration flow
-- JSON Schema contract tests between services
+- JSON Schema and **Pact** consumer/provider contract tests (`tests/contract/`, `tests/pacts/`)
+- OpenAPI/Swagger docs include shared contract schemas (`ledger_common.schemas`)
 
 ## Bonus features
 
@@ -182,13 +155,13 @@ Stretch goals from the project requirements that are implemented:
 | Prometheus metrics endpoint | Implemented (`GET /metrics` on both services) |
 | Retry with exponential backoff + jitter | Implemented (`tenacity` in Gateway Account Service client) |
 | Rate limiting on the Gateway | Implemented (`slowapi`, default `100/minute`) |
-| Contract tests (JSON Schema) | Implemented (`tests/contract/`) |
+| Contract tests (JSON Schema + Pact) | Implemented (`tests/contract/`, `tests/pacts/`) |
 | Async fallback: local queue when Account Service is down | Implemented (`queue_worker`, `GATEWAY_QUEUE_PROCESSING_ENABLED`) |
 | AWS deployment (ECS Fargate) | Implemented (`infrastructure/aws/`) |
 
 ## AWS deployment
 
-Deployed to **ECS Fargate** via Terraform and GitHub Actions. See [docs/ci-cd.md](docs/ci-cd.md) for the pipeline and [infrastructure/aws/README.md](infrastructure/aws/README.md) for manual deploy steps.
+Infrastructure for **ECS Fargate** is defined in Terraform and deployed via GitHub Actions. The stack is not kept running by default (to avoid idle AWS cost). See [docs/ci-cd.md](docs/ci-cd.md) for the pipeline and [infrastructure/aws/README.md](infrastructure/aws/README.md) for deploy and teardown steps.
 
 ## Project structure
 

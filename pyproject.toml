@@ -34,6 +34,7 @@ dev = [
     "httpx>=0.27.0",
     "respx>=0.21.0",
     "jsonschema>=4.23.0",
+    "pact-python>=3.0.0",
 ]
 
 [tool.setuptools.packages.find]
@@ -50,6 +51,10 @@ addopts = [
     "--cov=services",
     "--cov-report=term-missing",
     "--cov-report=html:htmlcov",
+]
+filterwarnings = [
+    "ignore:websockets.legacy is deprecated:DeprecationWarning",
+    "ignore:websockets.server.WebSocketServerProtocol is deprecated:DeprecationWarning",
 ]
 
 [tool.coverage.run]

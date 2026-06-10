@@ -6,8 +6,10 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ledger_common.logging import get_logger
+from ledger_common.openapi import ERROR_RESPONSES, TAG_ACCOUNTS, TAG_EVENTS
 from ledger_common.schemas import (
     ApplyTransactionRequest,
+    BalanceResponse,
     ErrorResponse,
     EventCreate,
     EventResponse,
@@ -24,11 +26,15 @@ from services.gateway.app.limiter import limiter
 from services.gateway.app.repository import EventRepository
 
 logger = get_logger(__name__)
-router = APIRouter()
+router = APIRouter(tags=[TAG_EVENTS])
+accounts_router = APIRouter(tags=[TAG_ACCOUNTS])
+
+
+_account_client = AccountServiceClient()
 
 
 def get_account_client() -> AccountServiceClient:
-    return AccountServiceClient()
+    return _account_client
 
 
 def _to_response(record) -> EventResponse:
@@ -50,9 +56,11 @@ def _to_response(record) -> EventResponse:
     "/events",
     response_model=EventResponse,
     status_code=status.HTTP_201_CREATED,
+    summary="Submit a transaction event",
     responses={
         200: {"model": EventResponse, "description": "Duplicate event (idempotent)"},
-        503: {"model": ErrorResponse},
+        400: ERROR_RESPONSES[400],
+        503: ERROR_RESPONSES[503],
     },
 )
 @limiter.limit("100/minute")
@@ -127,7 +135,12 @@ async def submit_event(
     return _to_response(record)
 
 
-@router.get("/events/{event_id}", response_model=EventResponse)
+@router.get(
+    "/events/{event_id}",
+    response_model=EventResponse,
+    summary="Get event by ID",
+    responses={404: ERROR_RESPONSES[404]},
+)
 async def get_event(event_id: str, db: AsyncSession = Depends(get_db)):
     logger.info("event_requested", trace_id=get_trace_id(), event_id=event_id)
     repo = EventRepository(db)
@@ -137,7 +150,11 @@ async def get_event(event_id: str, db: AsyncSession = Depends(get_db)):
     return _to_response(record)
 
 
-@router.get("/events", response_model=list[EventResponse])
+@router.get(
+    "/events",
+    response_model=list[EventResponse],
+    summary="List events for an account",
+)
 async def list_events(
     account: str = Query(..., alias="account", min_length=1),
     db: AsyncSession = Depends(get_db),
@@ -148,7 +165,12 @@ async def list_events(
     return [_to_response(r) for r in records]
 
 
-@router.get("/accounts/{account_id}/balance")
+@accounts_router.get(
+    "/accounts/{account_id}/balance",
+    response_model=BalanceResponse,
+    summary="Get account balance (proxied to Account Service)",
+    responses={503: ERROR_RESPONSES[503]},
+)
 async def get_balance_proxy(
     account_id: str,
     client: AccountServiceClient = Depends(get_account_client),

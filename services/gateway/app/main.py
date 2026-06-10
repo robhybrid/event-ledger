@@ -9,15 +9,24 @@ from slowapi.errors import RateLimitExceeded
 
 from ledger_common.logging import configure_logging, get_logger
 from ledger_common.metrics import REQUEST_COUNT, REQUEST_LATENCY, metrics_response
-from ledger_common.tracing import TraceIdMiddleware, instrument_fastapi, setup_tracing
+from ledger_common.tracing import (
+    TraceIdMiddleware,
+    flush_tracing,
+    instrument_fastapi,
+    setup_tracing,
+    shutdown_tracing,
+)
 from services.gateway.app.config import settings
 from services.gateway.app.limiter import limiter
 from services.gateway.app.database import check_db, init_db
 from services.gateway.app.queue_worker import queue_worker_loop
-from services.gateway.app.routes import router
+from ledger_common.openapi import OPENAPI_TAGS, TAG_HEALTH, TAG_METRICS, install_contract_openapi
+from services.gateway.app.routes import accounts_router, router
 
 configure_logging(settings.service_name, settings.log_level)
 logger = get_logger(__name__)
+
+setup_tracing(settings.service_name, settings.otlp_endpoint)
 
 _stop_event: asyncio.Event | None = None
 _worker_task: asyncio.Task | None = None
@@ -26,7 +35,6 @@ _worker_task: asyncio.Task | None = None
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global _stop_event, _worker_task
-    setup_tracing(settings.service_name, settings.otlp_endpoint)
     await init_db()
     _stop_event = asyncio.Event()
     _worker_task = asyncio.create_task(queue_worker_loop(_stop_event))
@@ -36,20 +44,31 @@ async def lifespan(app: FastAPI):
         _stop_event.set()
     if _worker_task:
         await _worker_task
+    flush_tracing()
+    shutdown_tracing()
     logger.info("gateway_stopped")
 
 
 app = FastAPI(
     title="Event Gateway API",
-    description="Public-facing API for financial transaction events",
+    description=(
+        "Public-facing API for financial transaction events.\n\n"
+        "**Contracts:** Request and response bodies use shared Pydantic models "
+        "from `ledger_common.schemas` (`EventCreate`, `EventResponse`, "
+        "`BalanceResponse`, `ErrorResponse`). Consumer-driven Pact contracts "
+        "for the Gateway → Account Service boundary live in `tests/pacts/`."
+    ),
     version="1.0.0",
+    openapi_tags=OPENAPI_TAGS,
     lifespan=lifespan,
 )
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-app.add_middleware(TraceIdMiddleware)
 instrument_fastapi(app, settings.service_name)
+app.add_middleware(TraceIdMiddleware)
 app.include_router(router)
+app.include_router(accounts_router)
+install_contract_openapi(app)
 
 
 @app.middleware("http")
@@ -72,7 +91,7 @@ async def metrics_middleware(request: Request, call_next):
     return response
 
 
-@app.get("/health")
+@app.get("/health", tags=[TAG_HEALTH], summary="Gateway health check")
 @limiter.exempt
 async def health(request: Request):
     db_ok = await check_db()
@@ -85,7 +104,7 @@ async def health(request: Request):
     return JSONResponse(content=body, status_code=status_code)
 
 
-@app.get("/metrics")
+@app.get("/metrics", tags=[TAG_METRICS], summary="Prometheus metrics")
 @limiter.exempt
 async def metrics(request: Request):
     content, content_type = metrics_response()

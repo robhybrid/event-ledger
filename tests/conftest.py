@@ -7,10 +7,17 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from ledger_common.schemas import EventCreate, TransactionType
+from ledger_common.tracing import shutdown_tracing
 from services.account.app.database import Base as AccountBase
 from services.account.app.main import app as account_app
 from services.gateway.app.database import Base as GatewayBase
 from services.gateway.app.main import app as gateway_app
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _shutdown_tracing_after_session():
+    yield
+    shutdown_tracing()
 
 
 @pytest.fixture(scope="session")

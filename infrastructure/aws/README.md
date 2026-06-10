@@ -51,10 +51,25 @@ cd infrastructure/aws
 cp terraform.tfvars.example terraform.tfvars
 # Edit terraform.tfvars with your ECR image URIs
 
-terraform init
+terraform init \
+  -backend-config="bucket=event-ledger-terraform-state-<ACCOUNT_ID>" \
+  -backend-config="key=event-ledger/terraform.tfstate" \
+  -backend-config="region=us-east-1"
+
 terraform plan
 terraform apply
 ```
+
+## Teardown
+
+To stop all running resources and avoid idle AWS cost:
+
+```bash
+cd infrastructure/aws
+terraform destroy
+```
+
+Use the same `-var` flags (or `terraform.tfvars`) as deploy. ECS services and the NAT Gateway can take several minutes to drain.
 
 ## Outputs
 

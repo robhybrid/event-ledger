@@ -115,9 +115,10 @@ async def test_full_event_flow(integrated_clients):
     gateway_app.dependency_overrides[get_account_client] = make_asgi_account_client
     try:
         event = sample_event("evt-flow-1", amount="100.00")
-        response = await gateway.post("/events", json=event, headers={TRACE_ID_HEADER: "trace-abc"})
+        response = await gateway.post("/events", json=event)
         assert response.status_code == 201
-        assert response.headers.get(TRACE_ID_HEADER) == "trace-abc"
+        trace_id = response.headers.get(TRACE_ID_HEADER)
+        assert trace_id and len(trace_id) == 32 and trace_id.isalnum()
 
         dup = await gateway.post("/events", json=event)
         assert dup.status_code == 200
@@ -231,11 +232,13 @@ async def test_trace_id_propagation(integrated_clients):
 
     gateway_app.dependency_overrides[get_account_client] = lambda: TracingAccountClient()
     try:
-        trace_id = "integration-trace-123"
-        await gateway.post(
-            "/events", json=sample_event("evt-trace"), headers={TRACE_ID_HEADER: trace_id}
-        )
+        response = await gateway.post("/events", json=sample_event("evt-trace"))
+        assert response.status_code == 201
+        trace_id = response.headers.get(TRACE_ID_HEADER)
+        assert trace_id and len(trace_id) == 32
         assert captured_headers
         assert captured_headers[0].get(TRACE_ID_HEADER) == trace_id
+        traceparent = captured_headers[0].get("traceparent", "")
+        assert traceparent.startswith("00-") and traceparent.split("-")[1] == trace_id
     finally:
         gateway_app.dependency_overrides.pop(get_account_client, None)

@@ -11,7 +11,7 @@ from tenacity import (
 from ledger_common.circuit_breaker import CircuitBreaker
 from ledger_common.logging import get_logger
 from ledger_common.metrics import ACCOUNT_SERVICE_CALLS, CIRCUIT_BREAKER_STATE
-from ledger_common.schemas import ApplyTransactionRequest, BalanceResponse
+from ledger_common.schemas import ApplyTransactionRequest, BalanceResponse, TransactionRecord
 from ledger_common.tracing import TRACE_ID_HEADER, get_trace_id, trace_headers
 from services.gateway.app.config import settings
 
@@ -44,6 +44,10 @@ circuit_breaker = CircuitBreaker(
 class AccountServiceClient:
     def __init__(self, base_url: str | None = None):
         self._base_url = (base_url or settings.account_service_url).rstrip("/")
+        self._client = httpx.AsyncClient(timeout=settings.request_timeout_seconds)
+
+    async def aclose(self) -> None:
+        await self._client.aclose()
 
     def _headers(self) -> dict[str, str]:
         headers = {"Content-Type": "application/json"}
@@ -57,13 +61,12 @@ class AccountServiceClient:
         reraise=True,
     )
     async def _request(self, method: str, path: str, *, json: dict | None = None) -> httpx.Response:
-        async with httpx.AsyncClient(timeout=settings.request_timeout_seconds) as client:
-            return await client.request(
-                method,
-                f"{self._base_url}{path}",
-                json=json,
-                headers=self._headers(),
-            )
+        return await self._client.request(
+            method,
+            f"{self._base_url}{path}",
+            json=json,
+            headers=self._headers(),
+        )
 
     async def _call_with_breaker(self, method: str, path: str, *, json: dict | None = None) -> httpx.Response:
         if circuit_breaker.is_open:
@@ -79,7 +82,9 @@ class AccountServiceClient:
             circuit_breaker.record_failure()
             raise
 
-    async def apply_transaction(self, account_id: str, payload: ApplyTransactionRequest) -> dict:
+    async def apply_transaction(
+        self, account_id: str, payload: ApplyTransactionRequest
+    ) -> TransactionRecord:
         operation = "apply_transaction"
         body = payload.model_dump(mode="json", by_alias=True)
 
@@ -113,7 +118,7 @@ class AccountServiceClient:
             operation=operation,
             account_id=account_id,
         )
-        return response.json()
+        return TransactionRecord.model_validate(response.json())
 
     async def get_balance(self, account_id: str) -> BalanceResponse:
         operation = "get_balance"
@@ -142,11 +147,11 @@ class AccountServiceClient:
 
     async def health_check(self) -> bool:
         try:
-            async with httpx.AsyncClient(timeout=2.0) as client:
-                response = await client.get(
-                    f"{self._base_url}/health",
-                    headers=self._headers(),
-                )
+            response = await self._client.get(
+                f"{self._base_url}/health",
+                headers=self._headers(),
+                timeout=2.0,
+            )
             return response.status_code == 200
         except Exception:
             return False

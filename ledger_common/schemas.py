@@ -15,8 +15,22 @@ class TransactionType(str, Enum):
     DEBIT = "DEBIT"
 
 
+_EVENT_EXAMPLE = {
+    "eventId": "evt-demo-001",
+    "accountId": "acct-demo",
+    "type": "CREDIT",
+    "amount": "150.00",
+    "currency": "USD",
+    "eventTimestamp": "2026-06-09T18:00:00Z",
+    "metadata": {"source": "batch"},
+}
+
+
 class EventCreate(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(
+        extra="forbid",
+        json_schema_extra={"examples": [_EVENT_EXAMPLE]},
+    )
 
     event_id: str = Field(..., alias="eventId", min_length=1, max_length=128)
     account_id: str = Field(..., alias="accountId", min_length=1, max_length=128)
@@ -28,7 +42,18 @@ class EventCreate(BaseModel):
 
 
 class EventResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(
+        populate_by_name=True,
+        json_schema_extra={
+            "examples": [
+                {
+                    **_EVENT_EXAMPLE,
+                    "status": "APPLIED",
+                    "createdAt": "2026-06-09T18:00:01Z",
+                }
+            ]
+        },
+    )
 
     event_id: str = Field(..., alias="eventId")
     account_id: str = Field(..., alias="accountId")
@@ -42,7 +67,20 @@ class EventResponse(BaseModel):
 
 
 class ApplyTransactionRequest(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(
+        populate_by_name=True,
+        json_schema_extra={
+            "examples": [
+                {
+                    "eventId": "evt-demo-001",
+                    "type": "CREDIT",
+                    "amount": "150.0000",
+                    "currency": "USD",
+                    "eventTimestamp": "2026-06-09T18:00:00Z",
+                }
+            ]
+        },
+    )
 
     event_id: str = Field(..., alias="eventId")
     type: TransactionType
@@ -52,7 +90,12 @@ class ApplyTransactionRequest(BaseModel):
 
 
 class BalanceResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(
+        populate_by_name=True,
+        json_schema_extra={
+            "examples": [{"accountId": "acct-demo", "balance": "150.0000", "currency": "USD"}]
+        },
+    )
 
     account_id: str = Field(..., alias="accountId")
     balance: MoneyAmount
@@ -60,7 +103,21 @@ class BalanceResponse(BaseModel):
 
 
 class TransactionRecord(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(
+        populate_by_name=True,
+        json_schema_extra={
+            "examples": [
+                {
+                    "eventId": "evt-demo-001",
+                    "type": "CREDIT",
+                    "amount": "150.0000",
+                    "currency": "USD",
+                    "eventTimestamp": "2026-06-09T18:00:00Z",
+                    "appliedAt": "2026-06-09T18:00:01Z",
+                }
+            ]
+        },
+    )
 
     event_id: str = Field(..., alias="eventId")
     type: TransactionType
